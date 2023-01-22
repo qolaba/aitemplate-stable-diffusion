@@ -68,6 +68,7 @@ class StableDiffusionAITPipeline(StableDiffusionPipeline):
         feature_extractor ([`CLIPFeatureExtractor`]):
             Model that extracts features from generated images to be used as inputs for the `safety_checker`.
     """
+    workdir  = "tmp_512_512_1/"
 
     def __init__(
         self,
@@ -97,16 +98,15 @@ class StableDiffusionAITPipeline(StableDiffusionPipeline):
             feature_extractor=feature_extractor,
             requires_safety_checker=requires_safety_checker,
         )
-
-        workdir = "tmp/"
+        
         self.clip_ait_exe = self.init_ait_module(
-            model_name="CLIPTextModel", workdir=workdir
+            model_name="CLIPTextModel", workdir=self.workdir
         )
         self.unet_ait_exe = self.init_ait_module(
-            model_name="UNet2DConditionModel", workdir=workdir
+            model_name="UNet2DConditionModel", workdir=self.workdir
         )
         self.vae_ait_exe = self.init_ait_module(
-            model_name="AutoencoderKL", workdir=workdir
+            model_name="AutoencoderKL", workdir=self.workdir
         )
 
     def init_ait_module(

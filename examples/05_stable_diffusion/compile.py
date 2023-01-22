@@ -30,7 +30,7 @@ from modeling.clip import CLIPTextTransformer as ait_CLIPTextTransformer
 from modeling.unet_2d_condition import UNet2DConditionModel as ait_UNet2DConditionModel
 
 from modeling.vae import AutoencoderKL as ait_AutoencoderKL
-
+import os
 
 USE_CUDA = detect_target().name() == "cuda"
 
@@ -318,13 +318,13 @@ def compile_vae(
     )
 
 
-@click.command()
-@click.option("--token", default="", help="access token")
-@click.option("--width", default=512, help="Width of generated image")
-@click.option("--height", default=512, help="Height of generated image")
-@click.option("--batch-size", default=1, help="batch size")
-@click.option("--use-fp16-acc", default=True, help="use fp16 accumulation")
-@click.option("--convert-conv-to-gemm", default=True, help="convert 1x1 conv to gemm")
+# @click.command()
+# @click.option("--token", default=None, help="access token")
+# @click.option("--width", default=512, help="Width of generated image")
+# @click.option("--height", default=512, help="Height of generated image")
+# @click.option("--batch-size", default=1, help="batch size")
+# @click.option("--use-fp16-acc", default=True, help="use fp16 accumulation")
+# @click.option("--convert-conv-to-gemm", default=True, help="convert 1x1 conv to gemm")
 def compile_diffusers(
     token, width, height, batch_size, use_fp16_acc=True, convert_conv_to_gemm=True
 ):
@@ -340,7 +340,7 @@ def compile_diffusers(
         access_token = token
 
     pipe = StableDiffusionPipeline.from_pretrained(
-        "stabilityai/stable-diffusion-2",
+        "stabilityai/stable-diffusion-2-1",
         revision="fp16",
         torch_dtype=torch.float16,
         use_auth_token=access_token,
@@ -374,6 +374,8 @@ def compile_diffusers(
         convert_conv_to_gemm=convert_conv_to_gemm,
     )
 
+    os.rename("tmp","tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size))
 
-if __name__ == "__main__":
-    compile_diffusers()
+
+# if __name__ == "__main__":
+#     compile_diffusers()
