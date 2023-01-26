@@ -11,6 +11,16 @@ import uvicorn
 from concurrent.futures import ThreadPoolExecutor
 from compile import compile_diffusers
 import zipfile
+import subprocess as sp
+import os
+
+def get_gpu_memory():
+    command = "nvidia-smi --query-gpu=memory.free --format=csv"
+    memory_free_info = sp.check_output(command.split()).decode('ascii').split('\n')[:-1][1:]
+    memory_free_values = [int(x.split()[0]) for i, x in enumerate(memory_free_info)]
+    return memory_free_values
+
+
 
 # 1: Define a FastAPI app and wrap it in a deployment with a route handler.
 app = FastAPI()
@@ -41,7 +51,7 @@ def get_zip_buffer(list_of_tuples):
     zip_buffer.seek(0)
     return zip_buffer
 
-StableDiffusionAITPipeline.workdir="tmp_512_512_1/"
+StableDiffusionAITPipeline.workdir="tmp_768_768_1/"
 pipe = StableDiffusionAITPipeline.from_pretrained(
         model_id,
         scheduler=scheduler,
@@ -49,6 +59,7 @@ pipe = StableDiffusionAITPipeline.from_pretrained(
         torch_dtype=torch.float16,
         use_auth_token="").to("cuda")
 
+print(get_gpu_memory())
 
 
     # FastAPI will automatically parse the HTTP request for us.
@@ -86,13 +97,18 @@ def get_image(
                 "batch_size" : batch_size}
     elif(not ("tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)+'/'==StableDiffusionAITPipeline.workdir)):
         print("tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size),StableDiffusionAITPipeline.workdir)
-        StableDiffusionAITPipeline.workdir="tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)
+        StableDiffusionAITPipeline.workdir="tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)+'/'
+        
+        del pipe
+        torch.cuda.empty_cache()
+        
         pipe = StableDiffusionAITPipeline.from_pretrained(
                 model_id,
                 scheduler=scheduler,
                 revision="fp16",
                 torch_dtype=torch.float16,
                 use_auth_token="").to("cuda")
+        print(16106-get_gpu_memory()[0])
 
 
     image = app.POOL.submit(pipe,prompt,height,width,num_inference_steps,guidance_scale,negative_prompt).result().images
