@@ -13,12 +13,15 @@ from compile import compile_diffusers
 import zipfile
 import subprocess as sp
 import os
+import random
+import time
 
-def get_gpu_memory():
-    command = "nvidia-smi --query-gpu=memory.free --format=csv"
-    memory_free_info = sp.check_output(command.split()).decode('ascii').split('\n')[:-1][1:]
-    memory_free_values = [int(x.split()[0]) for i, x in enumerate(memory_free_info)]
-    return memory_free_values
+
+# def get_gpu_memory():
+#     command = "nvidia-smi --query-gpu=memory.free --format=csv"
+#     memory_free_info = sp.check_output(command.split()).decode('ascii').split('\n')[:-1][1:]
+#     memory_free_values = [int(x.split()[0]) for i, x in enumerate(memory_free_info)]
+#     return memory_free_values
 
 
 
@@ -59,13 +62,12 @@ pipe = StableDiffusionAITPipeline.from_pretrained(
         torch_dtype=torch.float16,
         use_auth_token="").to("cuda")
 
-print(get_gpu_memory())
 
 
     # FastAPI will automatically parse the HTTP request for us.
 @app.on_event("startup")
 def startup_event():
-    app.POOL = ThreadPoolExecutor(max_workers=5)
+    app.POOL = ThreadPoolExecutor(max_workers=4)
 
 @app.on_event("shutdown")
 def shutdown_event():
@@ -73,7 +75,7 @@ def shutdown_event():
 
 
 
-@app.get("/getimage")
+@app.post("/getimage")
 def get_image(
     #prompt: Union[str, List[str]],
     prompt: Optional[str] = "dog",
@@ -97,20 +99,19 @@ def get_image(
                 "batch_size" : batch_size}
     elif(not ("tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)+'/'==StableDiffusionAITPipeline.workdir)):
         print("tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size),StableDiffusionAITPipeline.workdir)
-        StableDiffusionAITPipeline.workdir="tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)+'/'
         
         del pipe
         torch.cuda.empty_cache()
         
+        StableDiffusionAITPipeline.workdir="tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)+'/'
         pipe = StableDiffusionAITPipeline.from_pretrained(
                 model_id,
                 scheduler=scheduler,
                 revision="fp16",
                 torch_dtype=torch.float16,
                 use_auth_token="").to("cuda")
-        print(16106-get_gpu_memory()[0])
-
-
+    while ('pipe' not in globals()):
+        time.sleep(1)
     image = app.POOL.submit(pipe,prompt,height,width,num_inference_steps,guidance_scale,negative_prompt).result().images
     if(len(image)==1):
         filtered_image = io.BytesIO()

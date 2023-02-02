@@ -183,6 +183,7 @@ def compile_unet(
     hidden_dim=1024,
     use_fp16_acc=False,
     convert_conv_to_gemm=False,
+    folder='./tmp'
 ):
 
     ait_mod = ait_UNet2DConditionModel(
@@ -211,7 +212,7 @@ def compile_unet(
     target = detect_target(
         use_fp16_acc=use_fp16_acc, convert_conv_to_gemm=convert_conv_to_gemm
     )
-    compile_model(Y, target, "./tmp", "UNet2DConditionModel", constants=params_ait)
+    compile_model(Y, target, folder, "UNet2DConditionModel", constants=params_ait)
 
 
 def compile_clip(
@@ -221,6 +222,7 @@ def compile_clip(
     num_heads=12,
     use_fp16_acc=False,
     convert_conv_to_gemm=False,
+    folder='./tmp'
 ):
     mask_seq = 0
     causal = True
@@ -253,11 +255,11 @@ def compile_clip(
     target = detect_target(
         use_fp16_acc=use_fp16_acc, convert_conv_to_gemm=convert_conv_to_gemm
     )
-    compile_model(Y, target, "./tmp", "CLIPTextModel", constants=params_ait)
+    compile_model(Y, target, folder, "CLIPTextModel", constants=params_ait)
 
 
 def compile_vae(
-    batch_size=1, height=64, width=64, use_fp16_acc=False, convert_conv_to_gemm=False
+    batch_size=1, height=64, width=64, use_fp16_acc=False, convert_conv_to_gemm=False, folder='./tmp'
 ):
     in_channels = 3
     out_channels = 3
@@ -312,7 +314,7 @@ def compile_vae(
     compile_model(
         Y,
         target,
-        "./tmp",
+        folder,
         "AutoencoderKL",
         constants=params_ait,
     )
@@ -356,6 +358,7 @@ def compile_diffusers(
         num_heads=16,
         use_fp16_acc=use_fp16_acc,
         convert_conv_to_gemm=convert_conv_to_gemm,
+        folder="./tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)
     )
     # UNet
     compile_unet(
@@ -364,6 +367,7 @@ def compile_diffusers(
         hh=hh,
         use_fp16_acc=use_fp16_acc,
         convert_conv_to_gemm=convert_conv_to_gemm,
+        folder="./tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)
     )
     # VAE
     compile_vae(
@@ -372,10 +376,9 @@ def compile_diffusers(
         height=hh,
         use_fp16_acc=use_fp16_acc,
         convert_conv_to_gemm=convert_conv_to_gemm,
+        folder="./tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)
     )
 
-    os.rename("tmp","tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size))
 
-
-# if __name__ == "__main__":
-#     compile_diffusers()
+if __name__ == "__main__":
+   compile_diffusers(None, 512, 512,4)
