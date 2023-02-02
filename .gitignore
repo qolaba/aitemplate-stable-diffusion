@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # tmp
-tmp*/
+#tmp*/
 
 tags
 
