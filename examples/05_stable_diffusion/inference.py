@@ -58,7 +58,7 @@ def get_image(
         lock.acquire()
         
         pipe = helper.get_pipe(height, width, batch_size)
-        lock.release()
+        
         
         image = app.POOL.submit(pipe,prompt,height,width,num_inference_steps,guidance_scale,negative_prompt).result().images
         # if('pipe' in locals()):
@@ -66,7 +66,7 @@ def get_image(
         #     gc.collect()
         #     torch.cuda.empty_cache()
         
-        
+        lock.release()
         
         if(len(image)==1):
             filtered_image = io.BytesIO()
