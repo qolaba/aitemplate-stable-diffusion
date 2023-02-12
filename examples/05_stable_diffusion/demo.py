@@ -32,7 +32,7 @@ def run(token, width, height, prompt, benchmark):
 
     model_id = "stabilityai/stable-diffusion-2-1"
     scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-
+    StableDiffusionAITPipeline.workdir="tmp_512_512_1/"
     pipe = StableDiffusionAITPipeline.from_pretrained(
         model_id,
         scheduler=scheduler,
@@ -40,9 +40,9 @@ def run(token, width, height, prompt, benchmark):
         torch_dtype=torch.float16,
         use_auth_token=token,
     ).to("cuda")
-    a=input()
     with torch.autocast("cuda"):
-        image = pipe(prompt, height, width, 500).images[0]
+        prompt=["cute dog"]
+        image = pipe(prompt, height, width).images[0]
         if benchmark:
             t = benchmark_torch_function(10, pipe, prompt, height=height, width=width)
             print(f"sd e2e: {t} ms")
