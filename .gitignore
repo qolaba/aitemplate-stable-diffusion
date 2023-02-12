@@ -128,8 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# tmp
-#tmp*/
+tmp
+tmp*/
 
 tags
 
