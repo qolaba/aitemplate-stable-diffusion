@@ -58,24 +58,20 @@ def get_image(
         lock.acquire()
         
         pipe = helper.get_pipe(height, width, batch_size)
-        print(locals(), globals())
+        lock.release()
         
         image = app.POOL.submit(pipe,prompt,height,width,num_inference_steps,guidance_scale,negative_prompt).result().images
-        if('pipe' in locals()):
-            del pipe
-            gc.collect()
-            torch.cuda.empty_cache()
-            
-        lock.release()
-        gc.collect()  
-        torch.cuda.empty_cache()
+        # if('pipe' in locals()):
+        #     del pipe
+        #     gc.collect()
+        #     torch.cuda.empty_cache()
+        
+        
         
         if(len(image)==1):
             filtered_image = io.BytesIO()
             image[0].save(filtered_image, "JPEG")
             filtered_image.seek(0)
-            gc.collect()  
-            torch.cuda.empty_cache()
             return StreamingResponse(filtered_image, media_type="image/jpeg")
         else:
             list_of_tuples=[]
@@ -84,8 +80,6 @@ def get_image(
             buff=helper.get_zip_buffer(list_of_tuples) 
             response = StreamingResponse(buff, media_type="application/zip")
             response.headers["Content-Disposition"] = "attachment; filename=images.zip"
-            gc.collect()  
-            torch.cuda.empty_cache()
             return response
 
 

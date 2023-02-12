@@ -14,50 +14,17 @@ class aitemplate_sd:
     def __init__(self):
         self.model_id = "stabilityai/stable-diffusion-2-1"
         self.scheduler = EulerDiscreteScheduler.from_pretrained(self.model_id, subfolder="scheduler")
-        # StableDiffusionAITPipeline.workdir="tmp_768_768_5/"
-        # self.pipe_768_768_5 = StableDiffusionAITPipeline.from_pretrained(
-        #         self.model_id,
-        #         scheduler=self.scheduler,
-        #         revision="fp16",
-        #         torch_dtype=torch.float16,
-        #         use_auth_token="").to("cuda")
-        # StableDiffusionAITPipeline.workdir="tmp_512_512_5/"
-        # self.pipe_512_512_5 = StableDiffusionAITPipeline.from_pretrained(
-        #         self.model_id,
-        #         scheduler=self.scheduler,
-        #         revision="fp16",
-        #         torch_dtype=torch.float16,
-        #         use_auth_token="").to("cuda")
-        # StableDiffusionAITPipeline.workdir="tmp_512_512_1/"
-        # self.pipe = StableDiffusionAITPipeline.from_pretrained(
-        #         self.model_id,
-        #         scheduler=self.scheduler,
-        #         revision="fp16",
-        #         torch_dtype=torch.float16,
-        #         use_auth_token="").to("cuda")
-        # self.pipe_dict={}
-        # StableDiffusionAITPipeline.workdir="tmp_512_512_1/"
-        # self.pipe_dict[StableDiffusionAITPipeline.workdir] = StableDiffusionAITPipeline.from_pretrained(
-        #         self.model_id,
-        #         scheduler=self.scheduler,
-        #         revision="fp16",
-        #         torch_dtype=torch.float16,
-        #         use_auth_token="").to("cuda")
-        self.pipe_nsd = StableDiffusionPipeline.from_pretrained(self.model_id, torch_dtype=torch.float16)
-        self.pipe_nsd.scheduler = DPMSolverMultistepScheduler.from_config(self.pipe_nsd.scheduler.config)
-        self.pipe_nsd = self.pipe_nsd.to("cuda")
-    # def generate_pipe(self, new_work_dir):
-    #     if(len(self.pipe_dict)>1):
-    #         del self.pipe_dict[list(self.pipe_dict.keys())[0]]
-    #         torch.cuda.empty_cache()
-    #     StableDiffusionAITPipeline.workdir=new_work_dir
-    #     #self.pipe_dict[StableDiffusionAITPipeline.workdir]="processing"
-    #     self.pipe_dict[StableDiffusionAITPipeline.workdir] = StableDiffusionAITPipeline.from_pretrained(
-    #                 self.model_id,
-    #                 scheduler=self.scheduler,
-    #                 revision="fp16",
-    #                 torch_dtype=torch.float16,
-    #                 use_auth_token="").to("cuda")
+        StableDiffusionAITPipeline.workdir="tmp_512_512_1/"
+        self.pipe = StableDiffusionAITPipeline.from_pretrained(
+                self.model_id,
+                scheduler=self.scheduler,
+                revision="fp16",
+                torch_dtype=torch.float16,
+                use_auth_token="").to("cuda")
+        # self.pipe_nsd = StableDiffusionPipeline.from_pretrained(self.model_id, torch_dtype=torch.float16)
+        # self.pipe_nsd.scheduler = DPMSolverMultistepScheduler.from_config(self.pipe_nsd.scheduler.config)
+        # self.pipe_nsd = self.pipe_nsd.to("cuda")
+
 
     def get_pipe(self,
         height: Optional[int] = 512,
@@ -65,23 +32,11 @@ class aitemplate_sd:
         batch_size: Optional[int] = 1):
 
         new_work_dir= "tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)+'/'
-        # while ( not new_work_dir in  list(self.pipe_dict.keys())):
-        #     print("loop",new_work_dir)
-        #     if(time.time()-st>20):
-        #         del self.pipe_dict[new_work_dir]
-        #         torch.cuda.empty_cache()
-        #         generate_pipe(new_work_dir)
-        #         time.sleep(0.1)
         if(new_work_dir==StableDiffusionAITPipeline.workdir):
             while( not hasattr(self, 'pipe')):
-                time.sleep(0.1)
-            gc.collect()
-            torch.cuda.empty_cache()
+                time.sleep(0.001)
             return self.pipe
         else:
-            print(self.get_gpu_memory())
-            gc.collect()
-            torch.cuda.empty_cache()
             del self.pipe 
             gc.collect()
             torch.cuda.empty_cache()
@@ -92,8 +47,6 @@ class aitemplate_sd:
                     revision="fp16",
                     torch_dtype=torch.float16,
                     use_auth_token="").to("cuda")
-            gc.collect()
-            torch.cuda.empty_cache()
             return self.pipe
 
     def get_gpu_memory(self):
