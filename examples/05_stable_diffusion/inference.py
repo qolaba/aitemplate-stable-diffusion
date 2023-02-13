@@ -4,7 +4,6 @@ import io
 from fastapi.responses import StreamingResponse
 import uvicorn
 from concurrent.futures import ThreadPoolExecutor
-from compile import compile_diffusers
 import time
 from aithelper import aitemplate_sd
 import typing
@@ -25,7 +24,7 @@ app.POOL: ThreadPoolExecutor = None
 
 @app.on_event("startup")
 def startup_event():
-    app.POOL = ThreadPoolExecutor(max_workers=1)
+    app.POOL = ThreadPoolExecutor(max_workers=5)
 
 @app.on_event("shutdown")
 def shutdown_event():
@@ -59,14 +58,14 @@ def get_image(
         
         pipe = helper.get_pipe(height, width, batch_size)
         
-        
+        lock.release()
         image = app.POOL.submit(pipe,prompt,height,width,num_inference_steps,guidance_scale,negative_prompt).result().images
         # if('pipe' in locals()):
         #     del pipe
         #     gc.collect()
         #     torch.cuda.empty_cache()
         
-        lock.release()
+        
         
         if(len(image)==1):
             filtered_image = io.BytesIO()
@@ -83,27 +82,27 @@ def get_image(
             return response
 
 
-@app.get("/compile_model")
-def compile_model(
-    height: int,
-    width: int,
-    batch_size: int,
-    background_tasks: BackgroundTasks):
+# @app.get("/compile_model")
+# def compile_model(
+#     height: int,
+#     width: int,
+#     batch_size: int,
+#     background_tasks: BackgroundTasks):
 
-    listdir=helper.getlistoftmp()
-    if("tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size) in listdir):
-        return {"msg" : "tmp folder is already available",
-                "height" : height,
-                "width" : width,
-                "batch_size" : batch_size}
+#     listdir=helper.getlistoftmp()
+#     if("tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size) in listdir):
+#         return {"msg" : "tmp folder is already available",
+#                 "height" : height,
+#                 "width" : width,
+#                 "batch_size" : batch_size}
 
 
-    background_tasks.add_task(compile_diffusers,None, width, height, batch_size)
+#     background_tasks.add_task(compile_diffusers,None, width, height, batch_size)
 
-    return {"msg" : "Task_Submitted",
-                "height" : height,
-                "width" : width,
-                "batch_size" : batch_size}
+#     return {"msg" : "Task_Submitted",
+#                 "height" : height,
+#                 "width" : width,
+#                 "batch_size" : batch_size}
 
 @app.get("/list_of_configuration")
 def list_of_configuration():
