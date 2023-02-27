@@ -381,4 +381,4 @@ def compile_diffusers(
 
 
 if __name__ == "__main__":
-   compile_diffusers(None, 512, 512,1)
+    compile_diffusers(None, 512, 512,1)

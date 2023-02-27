@@ -8,46 +8,49 @@ import time
 from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
 import subprocess as sp
 import gc
+import numpy as np
+from multiprocessing import Process, Queue, Array
+import multiprocessing as mp
+
+mp.set_start_method('forkserver', force=True)
+
+def gen_img(prompt,height,width,num_inference_steps,guidance_scale,negative_prompt,batch_size,q):
+    new_work_dir= "tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)+'/'
+
+    StableDiffusionAITPipeline.workdir=new_work_dir
+    model_id = "stabilityai/stable-diffusion-2-1"
+    scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
+    pipe=StableDiffusionAITPipeline.from_pretrained(
+                        model_id,
+                        scheduler=scheduler,
+                        revision="fp16",
+                        torch_dtype=torch.float16,
+                        use_auth_token="").to("cuda")
+    with torch.autocast("cuda"):
+        image = pipe(prompt,height,width,num_inference_steps,guidance_scale,negative_prompt).images
+        q.put(image)
+    #os.system('sudo sh -c \'echo 3 >  /proc/sys/vm/drop_caches\'')
 
 
 class aitemplate_sd:
     def __init__(self):
-        self.model_id = "stabilityai/stable-diffusion-2-1"
-        self.scheduler = EulerDiscreteScheduler.from_pretrained(self.model_id, subfolder="scheduler")
-        StableDiffusionAITPipeline.workdir="tmp_512_512_1/"
-        self.pipe = StableDiffusionAITPipeline.from_pretrained(
-                self.model_id,
-                scheduler=self.scheduler,
-                revision="fp16",
-                torch_dtype=torch.float16,
-                use_auth_token="").to("cuda")
+        pass
         # self.pipe_nsd = StableDiffusionPipeline.from_pretrained(self.model_id, torch_dtype=torch.float16)
         # self.pipe_nsd.scheduler = DPMSolverMultistepScheduler.from_config(self.pipe_nsd.scheduler.config)
         # self.pipe_nsd = self.pipe_nsd.to("cuda")
 
 
-    def get_pipe(self,
-        height: Optional[int] = 512,
-        width: Optional[int] = 512,
-        batch_size: Optional[int] = 1):
+    def get_image(self,prompt,height,width,num_inference_steps,guidance_scale,negative_prompt,batch_size):
+        q = Queue()
+        process = Process(target=gen_img, args=(prompt,height,width,num_inference_steps,guidance_scale,negative_prompt,batch_size,q))
+        process.start()
+        image=q.get()
+        #process.join()
+        
+        return image
 
-        new_work_dir= "tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)+'/'
-        if(new_work_dir==StableDiffusionAITPipeline.workdir):
-            while( not hasattr(self, 'pipe')):
-                time.sleep(0.001)
-            return self.pipe
-        else:
-            del self.pipe 
-            gc.collect()
-            torch.cuda.empty_cache()
-            StableDiffusionAITPipeline.workdir=new_work_dir
-            self.pipe=StableDiffusionAITPipeline.from_pretrained(
-                    self.model_id,
-                    scheduler=self.scheduler,
-                    revision="fp16",
-                    torch_dtype=torch.float16,
-                    use_auth_token="").to("cuda")
-            return self.pipe
+
+        
 
     def get_gpu_memory(self):
         command = "nvidia-smi --query-gpu=memory.free --format=csv"

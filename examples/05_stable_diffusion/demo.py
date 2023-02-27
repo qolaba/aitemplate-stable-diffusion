@@ -14,11 +14,13 @@
 #
 import click
 import torch
+from memory_profiler import profile
 
 from aitemplate.testing.benchmark_pt import benchmark_torch_function
 from diffusers import EulerDiscreteScheduler
 from pipeline_stable_diffusion_ait import StableDiffusionAITPipeline
 
+from gc import get_objects
 
 @click.command()
 @click.option("--token", default="", help="access token")
@@ -28,6 +30,7 @@ from pipeline_stable_diffusion_ait import StableDiffusionAITPipeline
 @click.option(
     "--benchmark", type=bool, default=False, help="run stable diffusion e2e benchmark"
 )
+@profile
 def run(token, width, height, prompt, benchmark):
 
     model_id = "stabilityai/stable-diffusion-2-1"
@@ -46,7 +49,8 @@ def run(token, width, height, prompt, benchmark):
         if benchmark:
             t = benchmark_torch_function(10, pipe, prompt, height=height, width=width)
             print(f"sd e2e: {t} ms")
-
+    pipe = None
+    del pipe
     image.save("example_ait.png")
 
 
