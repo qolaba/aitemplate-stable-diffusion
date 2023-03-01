@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ait
+  labels:
+    app: ait
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ait
+  template:
+    metadata:
+      labels:
+        app: ait
+    spec:
+      containers:
+      - name: ait
+        image: ait:latest
+        ports:
+        - containerPort: 9000
+        imagePullPolicy: Never
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+
