@@ -379,6 +379,3 @@ def compile_diffusers(
         folder="./tmp_"+str(width)+"_"+str(height)+"_"+str(batch_size)
     )
 
-
-if __name__ == "__main__":
-    compile_diffusers(None, 512, 512,1)
